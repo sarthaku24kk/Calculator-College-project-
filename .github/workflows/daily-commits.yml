@@ -1,6 +1,6 @@
 name: Daily Git Commit Automator
 
-on:
+'on':
   schedule:
     # Runs once every 24 hours at 00:00 UTC
     # Note: GitHub Actions scheduled jobs can experience queue delays of a few minutes
@@ -47,9 +47,9 @@ jobs:
       - name: Execute Daily Commit Automation
         env:
           AUTO_COMMIT_PAT: ${{ secrets.AUTO_COMMIT_PAT }}
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
-          INCLUDE_FORKS: ${{ github.event.inputs.include_forks || 'false' }}
-          COMMIT_MSG: ${{ github.event.inputs.commit_message || 'chore: daily automated commit' }}
+          DRY_RUN: "${{ inputs.dry_run }}"
+          INCLUDE_FORKS: "${{ inputs.include_forks }}"
+          COMMIT_MSG: "${{ inputs.commit_message }}"
         run: |
           ARGS=""
           if [ "$DRY_RUN" = "true" ]; then
@@ -58,7 +58,8 @@ jobs:
           if [ "$INCLUDE_FORKS" = "true" ]; then
             ARGS="$ARGS --include-forks"
           fi
+          if [ -n "$COMMIT_MSG" ]; then
+            ARGS="$ARGS --message \"$COMMIT_MSG\""
+          fi
 
-          python commit_automator.py \
-            --message "$COMMIT_MSG" \
-            $ARGS
+          python commit_automator.py $ARGS
