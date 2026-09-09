@@ -1,0 +1,64 @@
+name: Daily Git Commit Automator
+
+on:
+  schedule:
+    # Runs once every 24 hours at 00:00 UTC
+    # Note: GitHub Actions scheduled jobs can experience queue delays of a few minutes
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run mode (discover repositories without committing or pushing)'
+        required: false
+        default: false
+        type: boolean
+      include_forks:
+        description: 'Include forked repositories'
+        required: false
+        default: false
+        type: boolean
+      commit_message:
+        description: 'Custom commit message'
+        required: false
+        default: 'chore: daily automated commit'
+        type: string
+
+concurrency:
+  group: daily-commits
+  cancel-in-progress: false
+
+jobs:
+  daily-commits:
+    name: Run Daily Commits Across Repositories
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read # Read permission for checking out this automation repository
+
+    steps:
+      - name: Checkout Automation Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Execute Daily Commit Automation
+        env:
+          AUTO_COMMIT_PAT: ${{ secrets.AUTO_COMMIT_PAT }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          INCLUDE_FORKS: ${{ github.event.inputs.include_forks || 'false' }}
+          COMMIT_MSG: ${{ github.event.inputs.commit_message || 'chore: daily automated commit' }}
+        run: |
+          ARGS=""
+          if [ "$DRY_RUN" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ "$INCLUDE_FORKS" = "true" ]; then
+            ARGS="$ARGS --include-forks"
+          fi
+
+          python commit_automator.py \
+            --message "$COMMIT_MSG" \
+            $ARGS

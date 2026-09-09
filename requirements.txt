@@ -1,0 +1,2 @@
+# No external dependencies required!
+# The script uses Python 3 standard libraries (urllib, subprocess, json, tempfile, argparse).
