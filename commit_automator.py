@@ -310,9 +310,9 @@ def write_step_summary(successful: List[Tuple[str, str]], failed: List[Tuple[str
 def main():
     parser = argparse.ArgumentParser(description="Automate daily Git empty commits across all owned GitHub repositories.")
     parser.add_argument("--token", help="GitHub Personal Access Token (or set AUTO_COMMIT_PAT env var)")
-    parser.add_argument("--message", default="chore: daily automated commit", help="Commit message")
-    parser.add_argument("--git-name", default="github-actions[bot]", help="Git committer name")
-    parser.add_argument("--git-email", default="github-actions[bot]@users.noreply.github.com", help="Git committer email")
+    parser.add_argument("--message", default=None, help="Commit message")
+    parser.add_argument("--git-name", default=None, help="Git committer name")
+    parser.add_argument("--git-email", default=None, help="Git committer email")
     parser.add_argument("--include-forks", action="store_true", help="Include forked repositories")
     parser.add_argument("--exclude", nargs="*", default=[], help="Repository names or full names to exclude")
     parser.add_argument("--dry-run", action="store_true", help="Discover repositories without creating or pushing commits")
@@ -324,6 +324,12 @@ def main():
     if not token:
         print("ERROR: GitHub token must be provided via --token or AUTO_COMMIT_PAT environment variable.", file=sys.stderr)
         sys.exit(1)
+
+    commit_message = get_env_or_arg(args.message, "COMMIT_MESSAGE") or "chore: daily automated commit"
+    git_name = get_env_or_arg(args.git_name, "GIT_NAME") or "github-actions[bot]"
+    git_email = get_env_or_arg(args.git_email, "GIT_EMAIL") or "github-actions[bot]@users.noreply.github.com"
+    dry_run = args.dry_run or (os.environ.get("DRY_RUN", "").lower() == "true")
+    include_forks = args.include_forks or (os.environ.get("INCLUDE_FORKS", "").lower() == "true")
 
     # Mask token in GitHub Actions logs if running in runner
     print(f"::add-mask::{token}")
@@ -348,7 +354,7 @@ def main():
         repos = fetch_all_owned_repositories(
             token=token,
             username=auth_user,
-            include_forks=args.include_forks,
+            include_forks=include_forks,
             exclude_repos=exclude_list
         )
     except Exception as e:
@@ -371,10 +377,10 @@ def main():
         success, detail = process_repository(
             repo=repo,
             token=token,
-            commit_message=args.message,
-            git_name=args.git_name,
-            git_email=args.git_email,
-            dry_run=args.dry_run
+            commit_message=commit_message,
+            git_name=git_name,
+            git_email=git_email,
+            dry_run=dry_run
         )
 
         if success:
@@ -403,7 +409,7 @@ def main():
     print("\n" + "=" * 50)
 
     # Write GitHub Actions Step Summary Markdown
-    write_step_summary(successful, failed, args.dry_run)
+    write_step_summary(successful, failed, dry_run)
 
     if failed and args.fail_on_error:
         print("Completed with errors (--fail-on-error was enabled).", file=sys.stderr)

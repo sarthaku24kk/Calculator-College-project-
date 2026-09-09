@@ -3,7 +3,6 @@ name: Daily Git Commit Automator
 'on':
   schedule:
     # Runs once every 24 hours at 00:00 UTC
-    # Note: GitHub Actions scheduled jobs can experience queue delays of a few minutes
     - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
@@ -33,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read # Read permission for checking out this automation repository
+      contents: read
 
     steps:
       - name: Checkout Automation Repository
@@ -47,19 +46,8 @@ jobs:
       - name: Execute Daily Commit Automation
         env:
           AUTO_COMMIT_PAT: ${{ secrets.AUTO_COMMIT_PAT }}
-          DRY_RUN: "${{ inputs.dry_run }}"
-          INCLUDE_FORKS: "${{ inputs.include_forks }}"
-          COMMIT_MSG: "${{ inputs.commit_message }}"
+          DRY_RUN: ${{ inputs.dry_run }}
+          INCLUDE_FORKS: ${{ inputs.include_forks }}
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
         run: |
-          ARGS=""
-          if [ "$DRY_RUN" = "true" ]; then
-            ARGS="$ARGS --dry-run"
-          fi
-          if [ "$INCLUDE_FORKS" = "true" ]; then
-            ARGS="$ARGS --include-forks"
-          fi
-          if [ -n "$COMMIT_MSG" ]; then
-            ARGS="$ARGS --message \"$COMMIT_MSG\""
-          fi
-
-          python commit_automator.py $ARGS
+          python commit_automator.py
